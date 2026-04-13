@@ -1,0 +1,12 @@
+[build]
+  # No build command needed for static site
+  publish = "."
+  command = "echo 'Static PWA - build not required'"
+
+[context.production]
+  command = "echo 'Production build'"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
