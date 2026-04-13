@@ -128,6 +128,67 @@
         .pdf-export-mode .signature-modal {
             display: none !important;
         }
+
+        .pdf-render-root {
+            position: fixed;
+            left: -10000px;
+            top: 0;
+            width: 1120px;
+            background: #fff;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .pdf-render-root *,
+        .pdf-render-root *::before,
+        .pdf-render-root *::after {
+            box-sizing: border-box !important;
+        }
+
+        .pdf-render-root .pdf-field {
+            display: block;
+            width: 100%;
+            min-height: 24px;
+            padding: 4px 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+
+        .pdf-render-root .pdf-field.pdf-field-empty {
+            min-height: 24px;
+        }
+
+        .pdf-render-root .pdf-field-ltr {
+            direction: ltr;
+            text-align: left;
+        }
+
+        .pdf-render-root .pdf-field-rtl {
+            direction: rtl;
+            text-align: right;
+        }
+
+        .pdf-render-root .pdf-table-fixed {
+            table-layout: fixed !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+
+        .pdf-render-root .pdf-table-fixed th,
+        .pdf-render-root .pdf-table-fixed td {
+            overflow: hidden !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+            box-sizing: border-box !important;
+        }
+
+        .pdf-render-root .pdf-no-wrap {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
         
         * {
             margin: 0;
@@ -2202,6 +2263,87 @@
             };
         }
 
+        function cloneNodeForPdf(node, documentRef) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                return documentRef.createTextNode(node.textContent);
+            }
+
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return null;
+            }
+
+            const tagName = node.tagName.toLowerCase();
+            const pdfElement = documentRef.createElement(tagName);
+
+            for (const attribute of node.attributes) {
+                if (attribute.name === 'id') {
+                    continue;
+                }
+                pdfElement.setAttribute(attribute.name, attribute.value);
+            }
+
+            pdfElement.className = node.className;
+
+            if (node.matches('input')) {
+                const value = node.value || node.getAttribute('placeholder') || '';
+                const field = documentRef.createElement('span');
+                field.className = 'pdf-field pdf-field-ltr pdf-no-wrap';
+                field.textContent = value;
+                if (!value) {
+                    field.classList.add('pdf-field-empty');
+                }
+                field.style.minHeight = `${Math.max(node.offsetHeight, 24)}px`;
+                field.style.display = 'inline-block';
+                return field;
+            }
+
+            if (node.hasAttribute('contenteditable')) {
+                const field = documentRef.createElement('div');
+                field.className = 'pdf-field pdf-field-ltr pdf-no-wrap';
+                field.textContent = (node.textContent || '').trim();
+                if (!field.textContent) {
+                    field.classList.add('pdf-field-empty');
+                    field.innerHTML = '&nbsp;';
+                }
+                field.style.minHeight = `${Math.max(node.offsetHeight, 24)}px`;
+                return field;
+            }
+
+            if (node.classList.contains('arabic-text') || node.classList.contains('invoice-type-arabic') || node.classList.contains('date-label-arabic')) {
+                pdfElement.classList.add('pdf-field-rtl');
+            }
+
+            if (node.classList.contains('english-text')) {
+                pdfElement.classList.add('pdf-field-ltr');
+            }
+
+            if (node.tagName.toLowerCase() === 'table') {
+                pdfElement.classList.add('pdf-table-fixed');
+            }
+
+            for (const child of node.childNodes) {
+                const clonedChild = cloneNodeForPdf(child, documentRef);
+                if (clonedChild) {
+                    pdfElement.appendChild(clonedChild);
+                }
+            }
+
+            return pdfElement;
+        }
+
+        function createPdfRenderRoot(sourceElement) {
+            const pdfRoot = document.createElement('div');
+            pdfRoot.className = 'pdf-render-root pdf-export-mode';
+
+            const clone = cloneNodeForPdf(sourceElement, document);
+            if (clone) {
+                pdfRoot.appendChild(clone);
+            }
+
+            document.body.appendChild(pdfRoot);
+            return pdfRoot;
+        }
+
         
         async function buildInvoicePdf(forceRegenerate = false) {
             if (!forceRegenerate && !invoiceDirty && cachedPdfBlob) {
@@ -2214,18 +2356,7 @@
                 await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
                 const invoiceContainer = document.querySelector('.invoice-container');
-
-                const canvas = await html2canvas(invoiceContainer, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff',
-                    ignoreElements: (element) => {
-                        return element.classList.contains('action-buttons') ||
-                               element.classList.contains('action-btn') ||
-                               (element.closest && element.closest('.signature-modal'));
-                    }
-                });
+                const pdfRenderRoot = createPdfRenderRoot(invoiceContainer);
 
                 const jsPDFModule = window.jspdf;
                 if (!jsPDFModule || !jsPDFModule.jsPDF) {
@@ -2239,6 +2370,15 @@
                 const margin = 8;
                 const contentWidth = pageWidth - margin * 2;
                 const contentHeight = pageHeight - margin * 2;
+                const captureTarget = pdfRenderRoot.firstElementChild || pdfRenderRoot;
+                const canvas = await html2canvas(captureTarget, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    removeContainer: true
+                });
+
                 const canvasWidth = canvas.width;
                 const canvasHeight = canvas.height;
                 const sliceHeight = Math.floor((canvasWidth * contentHeight) / contentWidth);
@@ -2271,8 +2411,13 @@
                 cachedPdfBlob = blob;
                 cachedPdfName = fileName;
                 invoiceDirty = false;
+                pdfRenderRoot.remove();
                 return { blob, fileName };
             } finally {
+                const existingPdfRoot = document.querySelector('.pdf-render-root');
+                if (existingPdfRoot) {
+                    existingPdfRoot.remove();
+                }
                 restoreLayout();
             }
         }
