@@ -1461,6 +1461,99 @@
         .signature-btn.destructive { background: #dc2626; }
         @media (max-width: 576px) { #signatureCanvas { height: 180px; } }
         @media (max-width: 400px) { #signatureCanvas { height: 150px; } }
+
+        /* Export mode: force clean horizontal layout for one-page PDF on mobile */
+        body.export-mode {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+        }
+
+        body.export-mode .invoice-container {
+            width: 1120px !important;
+            max-width: none !important;
+            margin: 0 auto !important;
+            border-width: 2px !important;
+        }
+
+        body.export-mode .header-content {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 12px !important;
+            align-items: flex-start !important;
+        }
+
+        body.export-mode .header-left,
+        body.export-mode .header-center,
+        body.export-mode .header-right {
+            flex: 1 1 0 !important;
+            width: auto !important;
+        }
+
+        body.export-mode .header-left {
+            text-align: left !important;
+        }
+
+        body.export-mode .header-center {
+            text-align: center !important;
+        }
+
+        body.export-mode .header-right {
+            text-align: right !important;
+        }
+
+        body.export-mode .phone-number {
+            justify-content: flex-end !important;
+        }
+
+        body.export-mode .date-section {
+            text-align: right !important;
+        }
+
+        body.export-mode .customer-info {
+            padding: 12px 16px !important;
+        }
+
+        body.export-mode .info-row {
+            display: flex !important;
+            flex-direction: row !important;
+            margin-bottom: 8px !important;
+        }
+
+        body.export-mode .info-row.two-columns {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 14px !important;
+        }
+
+        body.export-mode .info-group {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+        }
+
+        body.export-mode .info-label {
+            width: 140px !important;
+            margin-bottom: 0 !important;
+            font-size: 13px !important;
+            white-space: nowrap !important;
+        }
+
+        body.export-mode .info-value input {
+            font-size: 13px !important;
+            padding: 4px 2px !important;
+            min-height: 24px !important;
+        }
+
+        body.export-mode .invoice-table th,
+        body.export-mode .invoice-table td {
+            font-size: 11px !important;
+            padding: 5px 4px !important;
+        }
+
+        body.export-mode .invoice-table tbody tr {
+            height: 30px !important;
+        }
     </style>
 </head>
 <body>
@@ -1647,200 +1740,202 @@
             }
         });
 
-        async function saveInvoiceAsImage() {
+        let cachedPdfBlob = null;
+        let cachedPdfName = '';
+        let invoiceDirty = true;
+
+        function markInvoiceDirty() {
+            invoiceDirty = true;
+        }
+
+        document.addEventListener('input', (event) => {
+            if (event.target.closest('.invoice-container')) {
+                markInvoiceDirty();
+            }
+        });
+
+        document.addEventListener('change', (event) => {
+            if (event.target.closest('.invoice-container') || event.target.id === 'signatureFile') {
+                markInvoiceDirty();
+            }
+        });
+
+        function getInvoiceFileName() {
+            const invoiceNumber = document.querySelector('.invoice-number-input').value || 'invoice';
+            const date = new Date().toISOString().split('T')[0];
+            return `Invoice_${invoiceNumber}_${date}.pdf`;
+        }
+
+        function setActionButtonsState(isBusy) {
+            const buttons = document.querySelectorAll('.action-btn');
+            buttons.forEach((button) => {
+                button.disabled = isBusy;
+                button.style.opacity = isBusy ? '0.7' : '1';
+                button.style.cursor = isBusy ? 'wait' : 'pointer';
+            });
+        }
+
+        function prepareInvoiceForCapture() {
             const invoiceContainer = document.querySelector('.invoice-container');
             const actionButtons = document.querySelector('.action-buttons');
             const body = document.body;
-            
-            // Store original styles
+
             const originalContainerStyle = invoiceContainer.style.cssText;
             const originalBodyStyle = body.style.cssText;
-            
+            const originalActionDisplay = actionButtons.style.display;
+
+            body.classList.add('export-mode');
+            actionButtons.style.display = 'none';
+            body.style.padding = '0';
+            body.style.margin = '0';
+            body.style.background = '#ffffff';
+            invoiceContainer.style.marginTop = '0';
+            invoiceContainer.style.maxWidth = 'none';
+            invoiceContainer.style.width = '1120px';
+            invoiceContainer.style.margin = '0 auto';
+            invoiceContainer.style.transform = 'none';
+
+            return () => {
+                body.classList.remove('export-mode');
+                invoiceContainer.style.cssText = originalContainerStyle;
+                body.style.cssText = originalBodyStyle;
+                actionButtons.style.display = originalActionDisplay || 'flex';
+            };
+        }
+
+        async function buildInvoicePdf(forceRegenerate = false) {
+            if (!forceRegenerate && !invoiceDirty && cachedPdfBlob) {
+                return { blob: cachedPdfBlob, fileName: cachedPdfName };
+            }
+
+            const restoreLayout = prepareInvoiceForCapture();
+
             try {
-                // Hide buttons and force desktop layout
-                actionButtons.style.display = 'none';
-                body.style.padding = '0';
-                body.style.margin = '0';
-                body.style.background = '#ffffff';
-                invoiceContainer.style.marginTop = '0';
-                invoiceContainer.style.maxWidth = '800px';
-                invoiceContainer.style.margin = '0 auto';
-                invoiceContainer.style.transform = 'none';
-                
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
+                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+                const invoiceContainer = document.querySelector('.invoice-container');
+                const captureScale = window.innerWidth <= 768 ? 1.5 : 2;
+
                 const canvas = await html2canvas(invoiceContainer, {
-                    scale: 2,
+                    scale: captureScale,
                     backgroundColor: '#ffffff',
                     logging: false,
                     useCORS: true,
                     allowTaint: true,
                     removeContainer: false,
                     ignoreElements: (element) => {
-                        return element.classList.contains('action-buttons') || 
+                        return element.classList.contains('action-buttons') ||
                                element.classList.contains('action-btn') ||
                                (element.closest && element.closest('.signature-modal'));
                     }
                 });
-                
+
                 const jsPDFModule = window.jspdf;
                 if (!jsPDFModule || !jsPDFModule.jsPDF) {
                     throw new Error('jsPDF library not loaded properly');
                 }
-                
+
                 const jsPDF = jsPDFModule.jsPDF;
                 const pageWidth = 210;
                 const pageHeight = 297;
-                const imgWidth = pageWidth;
-                const imgHeight = (canvas.height * pageWidth) / canvas.width;
-                
+                const margin = 6;
+                const maxWidth = pageWidth - margin * 2;
+                const maxHeight = pageHeight - margin * 2;
+
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
-                    format: 'a4'
+                    format: 'a4',
+                    compress: true
                 });
-                
-                const imgData = canvas.toDataURL('image/png');
-                const pages = Math.ceil(imgHeight / pageHeight);
-                
-                for (let i = 0; i < pages; i++) {
-                    if (i > 0) pdf.addPage();
-                    const yOffset = -i * pageHeight;
-                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.92);
+                const imageAspect = canvas.width / canvas.height;
+                let renderWidth = maxWidth;
+                let renderHeight = renderWidth / imageAspect;
+
+                if (renderHeight > maxHeight) {
+                    renderHeight = maxHeight;
+                    renderWidth = renderHeight * imageAspect;
                 }
-                
-                const invoiceNumber = document.querySelector('.invoice-number-input').value || 'invoice';
-                const date = new Date().toISOString().split('T')[0];
-                const fileName = `Invoice_${invoiceNumber}_${date}.pdf`;
-                pdf.save(fileName);
-                
-                alert('✅ Invoice PDF saved successfully! Check your Downloads folder.');
+
+                const x = (pageWidth - renderWidth) / 2;
+                const y = (pageHeight - renderHeight) / 2;
+                pdf.addImage(imgData, 'JPEG', x, y, renderWidth, renderHeight, undefined, 'FAST');
+
+                const fileName = getInvoiceFileName();
+                const blob = pdf.output('blob');
+
+                cachedPdfBlob = blob;
+                cachedPdfName = fileName;
+                invoiceDirty = false;
+
+                return { blob, fileName };
+            } finally {
+                restoreLayout();
+            }
+        }
+
+        async function saveInvoiceAsImage() {
+            setActionButtonsState(true);
+
+            try {
+                const { blob, fileName } = await buildInvoicePdf(false);
+                downloadPDF(blob, fileName);
+                alert('✅ Invoice PDF saved successfully!');
             } catch (error) {
                 console.error('Error saving invoice:', error);
-                alert('❌ Error saving invoice. Please check console and try again.');
+                alert('❌ Error saving invoice. Please try again.');
             } finally {
-                // Restore original styles
-                invoiceContainer.style.cssText = originalContainerStyle;
-                body.style.cssText = originalBodyStyle;
-                actionButtons.style.display = 'flex';
+                setActionButtonsState(false);
             }
         }
 
         async function shareInvoice() {
-            const invoiceContainer = document.querySelector('.invoice-container');
-            const actionButtons = document.querySelector('.action-buttons');
-            const body = document.body;
-            
-            // Store original styles
-            const originalContainerStyle = invoiceContainer.style.cssText;
-            const originalBodyStyle = body.style.cssText;
-            
+            setActionButtonsState(true);
+
             try {
-                // Hide buttons and force desktop layout
-                actionButtons.style.display = 'none';
-                body.style.padding = '0';
-                body.style.margin = '0';
-                body.style.background = '#ffffff';
-                invoiceContainer.style.marginTop = '0';
-                invoiceContainer.style.maxWidth = '800px';
-                invoiceContainer.style.margin = '0 auto';
-                invoiceContainer.style.transform = 'none';
-                
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                const canvas = await html2canvas(invoiceContainer, {
-                    scale: 2,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true,
-                    removeContainer: false,
-                    ignoreElements: (element) => {
-                        return element.classList.contains('action-buttons') || 
-                               element.classList.contains('action-btn') ||
-                               (element.closest && element.closest('.signature-modal'));
-                    }
-                });
-                
-                const jsPDFModule = window.jspdf;
-                if (!jsPDFModule || !jsPDFModule.jsPDF) {
-                    throw new Error('jsPDF library not loaded properly');
-                }
-                
-                const jsPDF = jsPDFModule.jsPDF;
-                const pageWidth = 210;
-                const pageHeight = 297;
-                const imgWidth = pageWidth;
-                const imgHeight = (canvas.height * pageWidth) / canvas.width;
-                
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-                
-                const imgData = canvas.toDataURL('image/png');
-                const pages = Math.ceil(imgHeight / pageHeight);
-                
-                for (let i = 0; i < pages; i++) {
-                    if (i > 0) pdf.addPage();
-                    const yOffset = -i * pageHeight;
-                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
-                }
-                
+                const { blob, fileName } = await buildInvoicePdf(false);
                 const invoiceNumber = document.querySelector('.invoice-number-input').value || 'invoice';
-                const date = new Date().toISOString().split('T')[0];
-                const fileName = `Invoice_${invoiceNumber}_${date}.pdf`;
-                const pdfBlob = pdf.output('blob');
-                
-                // Restore original styles before sharing
-                invoiceContainer.style.cssText = originalContainerStyle;
-                body.style.cssText = originalBodyStyle;
-                actionButtons.style.display = 'flex';
-                
-                // Try to share if available
-                if (navigator.share) {
-                    try {
-                        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-                        
-                        // Check if device can share files
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                files: [file],
-                                title: 'Car Invoice',
-                                text: `Invoice #${invoiceNumber}`
-                            });
-                            console.log('Invoice shared successfully');
-                            alert('✅ Invoice shared successfully!');
-                            return;
-                        } else {
-                            // Device doesn't support file sharing, download instead
-                            downloadPDF(pdfBlob, fileName);
-                            alert('✅ Invoice downloaded! Share from your file manager.');
-                        }
-                    } catch (shareError) {
-                        // User cancelled or share failed, download as fallback
-                        if (shareError.name !== 'AbortError') {
-                            console.error('Share error:', shareError);
-                        }
-                        downloadPDF(pdfBlob, fileName);
-                        alert('✅ Invoice downloaded to your device!');
-                    }
-                } else {
-                    // Navigator.share not available, download as fallback
-                    downloadPDF(pdfBlob, fileName);
-                    alert('✅ Invoice downloaded to your device!');
+
+                if (!navigator.share) {
+                    downloadPDF(blob, fileName);
+                    alert('✅ Sharing is not supported on this browser. PDF downloaded instead.');
+                    return;
                 }
-                
+
+                const file = new File([blob], fileName, { type: 'application/pdf' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Car Invoice',
+                        text: `Invoice #${invoiceNumber}`
+                    });
+                    alert('✅ Invoice shared successfully!');
+                    return;
+                }
+
+                // Fallback for browsers that support share but not file sharing.
+                await navigator.share({
+                    title: 'Car Invoice',
+                    text: `Invoice #${invoiceNumber} is ready. PDF filename: ${fileName}`,
+                    url: window.location.href
+                });
+                downloadPDF(blob, fileName);
+                alert('✅ Share opened. PDF downloaded so you can attach it.');
             } catch (error) {
-                console.error('Error sharing invoice:', error);
-                
-                // Restore original styles on error
-                invoiceContainer.style.cssText = originalContainerStyle;
-                body.style.cssText = originalBodyStyle;
-                actionButtons.style.display = 'flex';
-                
-                alert('❌ Error processing invoice. Please try again.');
+                if (error.name !== 'AbortError') {
+                    console.error('Error sharing invoice:', error);
+                    if (cachedPdfBlob) {
+                        downloadPDF(cachedPdfBlob, cachedPdfName || getInvoiceFileName());
+                        alert('✅ Share failed, so the PDF was downloaded instead.');
+                    } else {
+                        alert('❌ Error sharing invoice. Please try again.');
+                    }
+                }
+            } finally {
+                setActionButtonsState(false);
             }
         }
 
@@ -1908,6 +2003,7 @@
             sigHasDrawn = false;
             const file = document.getElementById('signatureFile');
             if (file) file.value = '';
+            markInvoiceDirty();
         }
         function openSignatureModal() {
             const modal = document.getElementById('signatureModal');
@@ -1941,12 +2037,14 @@
                 }
                 const data = sigCanvas.toDataURL('image/png');
                 img.src = data;
+                markInvoiceDirty();
                 closeSignatureModal();
             } else {
                 const file = fileInput.files[0];
                 const reader = new FileReader();
                 reader.onload = () => {
                     img.src = reader.result;
+                    markInvoiceDirty();
                     closeSignatureModal();
                 };
                 reader.readAsDataURL(file);
