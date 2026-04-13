@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -17,7 +17,117 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     
     <style>
+
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
+        @media print {
+            html, body {
+                width: 210mm;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body * {
+                visibility: visible !important;
+            }
+
+            .action-buttons,
+            .signature-modal,
+            .signature-toolbar {
+                display: none !important;
+            }
+
+            .invoice-container {
+                width: 100% !important;
+                max-width: none !important;
+                margin: 0 !important;
+                border: 2px solid #000 !important;
+                box-shadow: none !important;
+                background: #fff !important;
+            }
+
+            .invoice-header,
+            .customer-info,
+            .invoice-table,
+            .invoice-footer,
+            .total-row,
+            .invoice-table tr {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+
+            .invoice-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+            }
+
+            .invoice-table thead {
+                display: table-header-group !important;
+            }
+
+            .invoice-table tfoot {
+                display: table-footer-group !important;
+            }
+
+            .invoice-table th,
+            .invoice-table td {
+                border: 1px solid #1e3a8a !important;
+                padding: 5px 4px !important;
+                font-size: 10pt !important;
+                vertical-align: middle !important;
+            }
+
+            .info-row.two-columns {
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            .info-group {
+                flex-direction: row !important;
+                align-items: center !important;
+            }
+
+            .info-label {
+                width: 34mm !important;
+                white-space: nowrap !important;
+            }
+
+            .info-value input,
+            .invoice-number-input,
+            .date-input,
+            .editable-input {
+                font-size: 11pt !important;
+                line-height: 1.3 !important;
+            }
+
+            .phone-number {
+                justify-content: flex-end !important;
+            }
+
+            .signature-line {
+                width: 45mm !important;
+            }
+        }
+
+        .pdf-export-mode .invoice-container {
+            width: 1120px !important;
+            max-width: none !important;
+            margin: 0 auto !important;
+            border: 2px solid #000 !important;
+        }
+
+        .pdf-export-mode .action-buttons,
+        .pdf-export-mode .signature-modal {
+            display: none !important;
+        }
         
         * {
             margin: 0;
@@ -1847,9 +1957,9 @@
 </head>
 <body>
     <div class="action-buttons">
-        <button class="action-btn" onclick="openSignatureModal()">✍️ Sign</button>
-        <button class="action-btn save-btn" onclick="saveInvoiceAsImage()">💾 Save to Gallery</button>
-        <button class="action-btn share-btn" onclick="shareInvoice()">📤 Share</button>
+        <button class="action-btn" onclick="openSignatureModal()">âœï¸ Sign</button>
+        <button class="action-btn save-btn" onclick="saveInvoiceAsImage()">ðŸ’¾ Save to Gallery</button>
+        <button class="action-btn share-btn" onclick="shareInvoice()">ðŸ“¤ Share</button>
     </div>
 
     <!-- Signature Modal -->
@@ -1857,7 +1967,7 @@
         <div class="signature-dialog">
             <div class="signature-header">
                 <div id="signatureTitle">Draw or Upload Signature</div>
-                <button class="signature-btn destructive" onclick="closeSignatureModal()" aria-label="Close">✖</button>
+                <button class="signature-btn destructive" onclick="closeSignatureModal()" aria-label="Close">âœ–</button>
             </div>
             <div class="signature-body">
                 <canvas id="signatureCanvas"></canvas>
@@ -1876,7 +1986,7 @@
     <div class="invoice-container">
         <!-- Header -->
         <div class="invoice-header">
-            <div class="company-name-arabic">حامد مختار للنقل بالشاحنات الثقيلة والخفيفة (ش.ذ.م.م)</div>
+            <div class="company-name-arabic">Ø­Ø§Ù…Ø¯ Ù…Ø®ØªØ§Ø± Ù„Ù„Ù†Ù‚Ù„ Ø¨Ø§Ù„Ø´Ø§Ø­Ù†Ø§Øª Ø§Ù„Ø«Ù‚ÙŠÙ„Ø© ÙˆØ§Ù„Ø®ÙÙŠÙØ© (Ø´.Ø°.Ù….Ù…)</div>
             <div class="company-name-english">HAMID MUKHTAR HEAVY & LIGHT TRUCKS TRANSPORT (L.L.C)</div>
             <div class="company-tagline">Dubai 24/7 Car Recovery & Towing Service</div>
             
@@ -1888,7 +1998,7 @@
                 
                 <div class="header-center">
                     <div class="invoice-type-box">
-                        <div class="invoice-type-arabic">فاتورة نقدا / على الحساب</div>
+                        <div class="invoice-type-arabic">ÙØ§ØªÙˆØ±Ø© Ù†Ù‚Ø¯Ø§ / Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø³Ø§Ø¨</div>
                         <div class="invoice-type-english">CASH / DEBIT INVOICE</div>
                     </div>
                 </div>
@@ -1898,11 +2008,11 @@
                         Email: Ahmadfarhan32304@gmail.com
                         <div class="contact-name">Ahmad Farhan</div>
                         <div class="phone-number">
-                            <span>📞</span> +971 543881803
+                            <span>ðŸ“ž</span> +971 543881803
                         </div>
                     </div>
                     <div class="date-section">
-                        <span class="date-label-arabic">التاريخ</span> Date.: <input type="date" class="date-input" id="invoiceDate">
+                        <span class="date-label-arabic">Ø§Ù„ØªØ§Ø±ÙŠØ®</span> Date.: <input type="date" class="date-input" id="invoiceDate">
                     </div>
                 </div>
             </div>
@@ -1941,31 +2051,31 @@
             <thead>
                 <tr class="table-header-row">
                     <th class="sr-no-col">
-                        <span class="arabic-text">الرقم</span>
+                        <span class="arabic-text">Ø§Ù„Ø±Ù‚Ù…</span>
                         <span class="english-text">Sr.<br>No.</span>
                     </th>
                     <th class="description-col">
-                        <span class="arabic-text">التفـــاصــيــــــل</span>
+                        <span class="arabic-text">Ø§Ù„ØªÙÙ€Ù€Ù€Ø§ØµÙ€Ù€ÙŠÙ€Ù€Ù€Ù€Ù€Ù€Ù„</span>
                         <span class="english-text">Description</span>
                     </th>
                     <th class="qty-col">
-                        <span class="arabic-text">العدد</span>
+                        <span class="arabic-text">Ø§Ù„Ø¹Ø¯Ø¯</span>
                         <span class="english-text">Qty.</span>
                     </th>
                     <th class="rate-col">
-                        <span class="arabic-text">السعر</span>
+                        <span class="arabic-text">Ø§Ù„Ø³Ø¹Ø±</span>
                         <span class="english-text">Rate</span>
                         <div>
-                            <span class="sub-label">درهم<br>Dhs.</span>
-                            <span class="sub-label">فلس<br>Fills.</span>
+                            <span class="sub-label">Ø¯Ø±Ù‡Ù…<br>Dhs.</span>
+                            <span class="sub-label">ÙÙ„Ø³<br>Fills.</span>
                         </div>
                     </th>
                     <th class="amount-col">
-                        <span class="arabic-text">المبلغ</span>
+                        <span class="arabic-text">Ø§Ù„Ù…Ø¨Ù„Øº</span>
                         <span class="english-text">Amount</span>
                         <div>
-                            <span class="sub-label">درهم<br>Dhs.</span>
-                            <span class="sub-label">فلس<br>Fills.</span>
+                            <span class="sub-label">Ø¯Ø±Ù‡Ù…<br>Dhs.</span>
+                            <span class="sub-label">ÙÙ„Ø³<br>Fills.</span>
                         </div>
                     </th>
                 </tr>
@@ -1985,7 +2095,7 @@
                         <img id="signatureImage" src="data:image/jpeg;base64,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" alt="Signature" style="max-width: 100px; height: 32px; display: block; margin-top: 2px;">
                     </td>
                     <td colspan="4" style="border-top: 2px solid #1e3a8a; padding: 6px 12px; vertical-align: bottom; text-align: right;">
-                        <span style="font-size: 13px; font-weight: bold;">المجموع درهم&nbsp;&nbsp;Total Dirhams</span>
+                        <span style="font-size: 13px; font-weight: bold;">Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹ Ø¯Ø±Ù‡Ù…&nbsp;&nbsp;Total Dirhams</span>
                         <div contenteditable="true" style="margin-top: 8px; min-width: 120px; min-height: 24px; border-bottom: 1px dotted #999; text-align: right; font-size: 15px; font-weight: bold;"></div>
                     </td>
                 </tr>
@@ -2073,7 +2183,7 @@
             const originalBodyStyle = body.style.cssText;
             const originalActionDisplay = actionButtons.style.display;
 
-            body.classList.add('export-mode');
+            body.classList.add('export-mode', 'pdf-export-mode');
             actionButtons.style.display = 'none';
             body.style.padding = '0';
             body.style.margin = '0';
@@ -2085,13 +2195,14 @@
             invoiceContainer.style.transform = 'none';
 
             return () => {
-                body.classList.remove('export-mode');
+                body.classList.remove('export-mode', 'pdf-export-mode');
                 invoiceContainer.style.cssText = originalContainerStyle;
                 body.style.cssText = originalBodyStyle;
                 actionButtons.style.display = originalActionDisplay || 'flex';
             };
         }
 
+        
         async function buildInvoicePdf(forceRegenerate = false) {
             if (!forceRegenerate && !invoiceDirty && cachedPdfBlob) {
                 return { blob: cachedPdfBlob, fileName: cachedPdfName };
@@ -2103,15 +2214,12 @@
                 await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
                 const invoiceContainer = document.querySelector('.invoice-container');
-                const captureScale = 2;
 
                 const canvas = await html2canvas(invoiceContainer, {
-                    scale: captureScale,
-                    backgroundColor: '#ffffff',
-                    logging: false,
+                    scale: 2,
                     useCORS: true,
-                    allowTaint: true,
-                    removeContainer: false,
+                    logging: false,
+                    backgroundColor: '#ffffff',
                     ignoreElements: (element) => {
                         return element.classList.contains('action-buttons') ||
                                element.classList.contains('action-btn') ||
@@ -2125,60 +2233,50 @@
                 }
 
                 const jsPDF = jsPDFModule.jsPDF;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
                 const pageWidth = 210;
                 const pageHeight = 297;
-                const margin = 5;
-                const pdfContentWidth = pageWidth - margin * 2;
+                const margin = 8;
+                const contentWidth = pageWidth - margin * 2;
+                const contentHeight = pageHeight - margin * 2;
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+                const sliceHeight = Math.floor((canvasWidth * contentHeight) / contentWidth);
+                const pageCount = Math.max(1, Math.ceil(canvasHeight / sliceHeight));
 
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4',
-                    compress: true
-                });
+                for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+                    const sourceY = pageIndex * sliceHeight;
+                    const sourceHeight = Math.min(sliceHeight, canvasHeight - sourceY);
+                    const pageCanvas = document.createElement('canvas');
+                    pageCanvas.width = canvasWidth;
+                    pageCanvas.height = sourceHeight;
 
-                const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                const canvasAspectRatio = canvas.width / canvas.height;
-                
-                // Scale image to fit page width
-                const pdfImageHeight = pdfContentWidth / canvasAspectRatio;
-                
-                // Calculate total pages needed
-                const pageContentHeight = pageHeight - margin * 2;
-                const totalPages = Math.ceil(pdfImageHeight / pageContentHeight);
+                    const pageCtx = pageCanvas.getContext('2d');
+                    pageCtx.fillStyle = '#ffffff';
+                    pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    pageCtx.drawImage(canvas, 0, sourceY, canvasWidth, sourceHeight, 0, 0, canvasWidth, sourceHeight);
 
-                // Add images across pages
-                for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+                    const pageImage = pageCanvas.toDataURL('image/png');
+                    const pageImageHeight = (sourceHeight * contentWidth) / canvasWidth;
+
                     if (pageIndex > 0) {
                         pdf.addPage();
                     }
-                    
-                    // Position and size for this page
-                    const yOffset = -(pageIndex * pageContentHeight);
-                    pdf.addImage(
-                        imgData,
-                        'JPEG',
-                        margin,
-                        margin + yOffset,
-                        pdfContentWidth,
-                        pdfImageHeight,
-                        undefined,
-                        'MEDIUM'
-                    );
+
+                    pdf.addImage(pageImage, 'PNG', margin, margin, contentWidth, pageImageHeight, undefined, 'FAST');
                 }
 
                 const fileName = getInvoiceFileName();
                 const blob = pdf.output('blob');
-
                 cachedPdfBlob = blob;
                 cachedPdfName = fileName;
                 invoiceDirty = false;
-
                 return { blob, fileName };
             } finally {
                 restoreLayout();
             }
         }
+
 
         async function saveInvoiceAsImage() {
             setActionButtonsState(true);
@@ -2186,10 +2284,10 @@
             try {
                 const { blob, fileName } = await buildInvoicePdf(false);
                 downloadPDF(blob, fileName);
-                alert('✅ Invoice PDF saved successfully!');
+                alert('Invoice PDF saved successfully!');
             } catch (error) {
                 console.error('Error saving invoice:', error);
-                alert('❌ Error saving invoice. Please try again.');
+                alert('Error saving invoice. Please try again.');
             } finally {
                 setActionButtonsState(false);
             }
@@ -2204,7 +2302,7 @@
 
                 if (!navigator.share) {
                     downloadPDF(blob, fileName);
-                    alert('✅ Sharing is not supported on this browser. PDF downloaded instead.');
+                    alert('Sharing is not supported on this browser. PDF downloaded instead.');
                     return;
                 }
 
@@ -2216,7 +2314,7 @@
                         title: 'Car Invoice',
                         text: `Invoice #${invoiceNumber}`
                     });
-                    alert('✅ Invoice shared successfully!');
+                    alert('Invoice shared successfully!');
                     return;
                 }
 
@@ -2227,15 +2325,15 @@
                     url: window.location.href
                 });
                 downloadPDF(blob, fileName);
-                alert('✅ Share opened. PDF downloaded so you can attach it.');
+                alert('Share opened. PDF downloaded so you can attach it.');
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.error('Error sharing invoice:', error);
                     if (cachedPdfBlob) {
                         downloadPDF(cachedPdfBlob, cachedPdfName || getInvoiceFileName());
-                        alert('✅ Share failed, so the PDF was downloaded instead.');
+                        alert('Share failed, so the PDF was downloaded instead.');
                     } else {
-                        alert('❌ Error sharing invoice. Please try again.');
+                        alert('Error sharing invoice. Please try again.');
                     }
                 }
             } finally {
